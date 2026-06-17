@@ -70,7 +70,7 @@ This is a v1 of a small tool. Be honest with yourself about its limits:
 ## Safety notes
 
 - **Back up your vault before first use**, and try it on a throwaway canvas first.
-- **Embedded external links are passed through verbatim.** If a card contains something like `![x](https://example.com/...)`, the merged note will contain it too — and when you *open* that note in reading view, Obsidian will fetch it, just as it would on the canvas. Be cautious merging canvases that contain external links you don’t trust.
+- **External content is passed through verbatim — images, links, and embedded HTML alike.** If a card contains something like `![x](https://example.com/...)` (or raw `<img>`/`<iframe>` HTML, or CSS with an external `url()`), the merged note keeps it exactly as-is. The plugin does **not** alter or sanitize your content. When you *open* the merged note in reading view, Obsidian fetches any such external reference — exactly as it already does on the canvas itself, so this adds no new exposure. Still, be cautious merging canvases that contain external references you don’t trust.
 - **When reporting a bug, desensitise first.** Don’t paste private vault content, full canvas JSON, or screenshots of confidential notes into a public issue.
 
 ---

@@ -299,10 +299,14 @@ function mergeCanvas(canvasObj, selectedIds) {
   // 6. Block-rendering helper
   function renderNode(node) {
     if (node.type === 'text') {
+      // (2026-06-16) External image embeds are passed through verbatim (see README safety note).
+      // Silently rewriting them mutilates the user's own content for a fetch risk that already
+      // exists in the canvas itself; honest docs beat a partial, surprising sanitizer.
+      const txt = node.text;
       const pId = nodeParent[node.id];
       if (pId) {
         const parentLevel = Math.min(2 + (groupDepth[pId] || 0), 6);
-        const lines = node.text.split(/\r?\n/).map(line => {
+        const lines = txt.split(/\r?\n/).map(line => {
           const match = line.match(/^(#{1,6})\s/);
           if (match) {
             const k = match[1].length;
@@ -313,7 +317,7 @@ function mergeCanvas(canvasObj, selectedIds) {
         });
         return [lines.join('\n')];
       }
-      return [node.text];
+      return [txt];
     } else if (node.type === 'file') {
       return [`![[${node.file}]]`];
     } else if (node.type === 'link') {
@@ -360,9 +364,24 @@ module.exports = class CanvasCardMergerPlugin extends Plugin {
             new Notice("請先開啟一個 Canvas");
             return;
           }
-          const raw = await this.app.vault.read(file);
-          const data = JSON.parse(raw);
+          let data;
+          try {
+            const raw = await this.app.vault.read(file);
+            if (!raw || !raw.trim()) {
+              // 剛建未寫入的新 canvas 檔案是空的（非合法 JSON）；當「空畫布」處理，別說「無法解析」嚇人（2026-06-16 實機煙霧）
+              new Notice("這個 Canvas 是空的，沒有可合併的內容（未建立任何檔案）。", 6000);
+              return;
+            }
+            data = JSON.parse(raw);
+          } catch (e) {
+            new Notice("合併失敗：無法讀取或解析這個 Canvas。你的畫布與既有筆記都沒有被更動。", 8000);
+            return;
+          }
           const md = mergeCanvas(data, null);
+          if (!md || !md.trim()) {
+            new Notice("這個 Canvas 是空的，沒有可合併的內容（未建立任何檔案）。", 6000);
+            return;
+          }
           const stem = file.path.slice(0, -7);
           let outPath = stem + " (merged).md";
           if (this.app.vault.getAbstractFileByPath(outPath)) {
@@ -377,9 +396,9 @@ module.exports = class CanvasCardMergerPlugin extends Plugin {
             }
           }
           await this.app.vault.create(outPath, md);
-          new Notice("已合併為筆記");
+          new Notice("已合併為筆記：" + outPath, 4000);
         } catch (e) {
-          new Notice("合併失敗：" + e.message);
+          new Notice("合併失敗：你的畫布與既有筆記都沒有被更動。（" + e.message + "）", 8000);
         }
       }
     });
