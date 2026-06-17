@@ -3,7 +3,7 @@
   "name": "Canvas Card Merger",
   "version": "1.0.2",
   "minAppVersion": "1.1.0",
-  "description": "Merge an Obsidian Canvas into a single structured Markdown note.",
+  "description": "Merge a Canvas into a single structured Markdown note.",
   "author": "Canvas Card Merger",
   "isDesktopOnly": false
 }
