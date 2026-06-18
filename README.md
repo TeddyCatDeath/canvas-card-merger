@@ -15,6 +15,7 @@ Run the command **“Merge canvas to note”** while a canvas is open, and it cr
   - otherwise, top‑to‑bottom, then left‑to‑right.
 - **Groups** (the boxes you draw around cards) become headings (`##`). Cards inside a group are nested under it, and any headings *inside* a card are pushed down a level so they never outrank the group heading.
 - **File/image nodes** become embeds (`![[file]]`); **link nodes** become plain URLs.
+- **Local images written inside a card** as relative Markdown (`![](attachments/x.png)`, `![](../assets/y.png)`) are converted to vault embeds (`![[x.png]]`) so they keep rendering in the merged note even though it lives in a different spot. External image URLs (`https://…`) are kept exactly as written.
 - It **never overwrites** an existing note — if `X (merged).md` already exists, it writes `X (merged 2).md`, and so on.
 
 ### Example
@@ -70,7 +71,8 @@ This is a v1 of a small tool. Be honest with yourself about its limits:
 ## Safety notes
 
 - **Back up your vault before first use**, and try it on a throwaway canvas first.
-- **External content is passed through verbatim — images, links, and embedded HTML alike.** If a card contains something like `![x](https://example.com/...)` (or raw `<img>`/`<iframe>` HTML, or CSS with an external `url()`), the merged note keeps it exactly as-is. The plugin does **not** alter or sanitize your content. When you *open* the merged note in reading view, Obsidian fetches any such external reference — exactly as it already does on the canvas itself, so this adds no new exposure. Still, be cautious merging canvases that contain external references you don’t trust.
+- **External references are passed through verbatim — external image URLs, links, and embedded HTML alike.** If a card contains something like `![x](https://example.com/...)` (or raw `<img>`/`<iframe>` HTML, or CSS with an external `url()`), the merged note keeps it exactly as-is. The plugin does **not** alter or sanitize your content. When you *open* the merged note in reading view, Obsidian fetches any such external reference — exactly as it already does on the canvas itself, so this adds no new exposure. Still, be cautious merging canvases that contain external references you don’t trust.
+- **Duplicate filenames.** Local in‑card images are converted to `![[filename]]` embeds, which Obsidian resolves *by name* across the whole vault. If two files share the same name, the embed may resolve to a different one than the card pointed at — keep image filenames unique if this matters to you.
 - **When reporting a bug, desensitise first.** Don’t paste private vault content, full canvas JSON, or screenshots of confidential notes into a public issue.
 
 ---

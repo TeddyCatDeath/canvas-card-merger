@@ -299,10 +299,17 @@ function mergeCanvas(canvasObj, selectedIds) {
   // 6. Block-rendering helper
   function renderNode(node) {
     if (node.type === 'text') {
-      // (2026-06-16) External image embeds are passed through verbatim (see README safety note).
-      // Silently rewriting them mutilates the user's own content for a fetch risk that already
-      // exists in the canvas itself; honest docs beat a partial, surprising sanitizer.
-      const txt = node.text;
+      // (2026-06-16) 外部圖片 embed（http(s) / scheme://）原樣 passthrough（沿 exfil 決定；README 有警示）。
+      // (2026-06-17 v1.0.5 維護 issue#002) 本地相對 Markdown 圖片 ![alt](local/path) → ![[檔名]]：
+      //   修「merged 筆記在不同目錄→相對路徑解析不到→圖斷鏈」；與 file 節點已轉 ![[file]] 一致；只動本地相對、外部 URL 不碰。
+      let txt = node.text;
+      txt = txt.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (m, _alt, raw) => {
+        const p = raw.trim();
+        if (/^[a-z][a-z0-9+.-]*:\/\//i.test(p) || p.startsWith('//')) return m;  // 外部 URL 不動
+        const pathPart = p.split(/\s+/)[0].replace(/^<|>$/g, '');  // 去 <> 與標題
+        const base = pathPart.split(/[\\/]/).pop().split(/[#?]/)[0];  // 取檔名
+        return base ? `![[${base}]]` : m;
+      });
       const pId = nodeParent[node.id];
       if (pId) {
         const parentLevel = Math.min(2 + (groupDepth[pId] || 0), 6);
@@ -376,6 +383,12 @@ module.exports = class CanvasCardMergerPlugin extends Plugin {
           } catch (e) {
             new Notice("合併失敗：無法讀取或解析這個 Canvas。你的畫布與既有筆記都沒有被更動。", 8000);
             return;
+          }
+          // 超大畫布：合併前先警示（同步處理會暫時占住 UI；維護 issue #001 / 使用者座+cross-source 點出）
+          const nodeCount = Array.isArray(data.nodes) ? data.nodes.length : 0;
+          if (nodeCount > 500) {
+            new Notice(`此 Canvas 較大（${nodeCount} 個節點），合併可能需要幾秒、期間畫面可能短暫無回應。`, 6000);
+            await new Promise((resolve) => setTimeout(resolve, 50));
           }
           const md = mergeCanvas(data, null);
           if (!md || !md.trim()) {
